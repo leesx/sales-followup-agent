@@ -10,8 +10,30 @@ const riskRank = {
   low: 1,
 };
 
+const positiveSignals = ["确认", "通过", "同意", "愿意", "推进", "预算已", "已批", "已参加"];
+const negativeSignals = ["担心", "暂缓", "拒绝", "压价", "不确定", "延期", "没有预算", "风险"];
+const blockerPatterns = ["采购要求", "客户担心", "担心", "需要审批", "预算", "压价", "合规", "安全", "实施周期"];
+const duePatterns = ["今天", "明天上午", "明天", "后天", "本周内", "下周一前", "下周二前", "下周三前", "下周四前", "下周五前", "下周前"];
+const actionVerbs = ["补充", "发送", "发", "安排", "确认", "整理", "同步", "提供", "约"];
+
 export function formatCurrency(value) {
   return currencyFormatter.format(value);
+}
+
+export function parseFollowupRecord(content, customer) {
+  const normalizedContent = content.trim();
+  const sentiment = detectSentiment(normalizedContent);
+  const blockers = detectBlockers(normalizedContent);
+  const dueText = detectDueText(normalizedContent);
+  const nextStep = detectNextStep(normalizedContent, customer);
+
+  return {
+    content: normalizedContent,
+    sentiment,
+    blockers,
+    nextStep,
+    dueText,
+  };
 }
 
 export function analyzeCustomer(customer) {
@@ -41,6 +63,19 @@ export function analyzeCustomer(customer) {
   if (customer.objections.length > 0) {
     riskScore += Math.min(customer.objections.length * 10, 20);
     reasons.push(`存在异议：${customer.objections.join("、")}`);
+  }
+
+  if (latestFollowup?.sentiment === "positive") {
+    riskScore -= 10;
+  }
+
+  if (latestFollowup?.sentiment === "negative") {
+    riskScore += 16;
+  }
+
+  if (latestFollowup?.blockers?.length) {
+    riskScore += 12;
+    reasons.push(`最新跟进发现阻塞：${latestFollowup.blockers.join("、")}`);
   }
 
   if (customer.signals.some((signal) => signal.includes("CEO") || signal.includes("财务"))) {
@@ -105,7 +140,7 @@ function buildNextAction(customer, riskLevel) {
     return {
       priority: riskLevel === "high" ? "P0" : riskLevel === "medium" ? "P1" : "P2",
       channel: "微信 + 任务提醒",
-      timing: "今天完成",
+      timing: latestFollowup.dueText ?? "今天完成",
       title: latestFollowup.nextStep,
       draft: `${customer.contact}，我根据我们最新沟通先推进「${latestFollowup.nextStep}」。完成后我会把关键材料同步给您，方便您继续内部推进。`,
     };
@@ -154,4 +189,57 @@ function buildGeneratedTask(customer, nextAction, latestFollowup) {
 
 function getLatestFollowup(followups = []) {
   return [...followups].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0] ?? null;
+}
+
+function detectSentiment(content) {
+  const positiveScore = positiveSignals.filter((signal) => content.includes(signal)).length;
+  const negativeScore = negativeSignals.filter((signal) => content.includes(signal)).length;
+
+  if (positiveScore > negativeScore) return "positive";
+  if (negativeScore > positiveScore) return "negative";
+  return "neutral";
+}
+
+function detectBlockers(content) {
+  const concernMatch = content.match(/客户担心[^，。；;,.]+/);
+  const blockers = concernMatch ? [concernMatch[0]] : [];
+
+  blockerPatterns.forEach((pattern) => {
+    if (content.includes(pattern) && !blockers.some((blocker) => blocker.includes(pattern))) {
+      blockers.push(pattern);
+    }
+  });
+
+  return blockers;
+}
+
+function detectDueText(content) {
+  return duePatterns.find((pattern) => content.includes(pattern)) ?? "今天完成";
+}
+
+function detectNextStep(content, customer) {
+  const dueText = detectDueText(content);
+  const contentAfterDue = dueText === "今天完成" ? content : content.slice(content.indexOf(dueText) + dueText.length);
+  const actionPattern = new RegExp(`(${actionVerbs.join("|")})([^，。；;,.]+)`);
+  const dueMatch = contentAfterDue.match(actionPattern);
+  if (dueMatch?.[0]) return cleanupAction(dueMatch[0]);
+
+  const matches = [...content.matchAll(new RegExp(`(${actionVerbs.join("|")})([^，。；;,.]+)`, "g"))];
+  const actionableMatch = matches.findLast((match) => !match[0].includes("预算已通过"));
+  if (actionableMatch?.[0]) return cleanupAction(actionableMatch[0]);
+
+  if (content.includes("合同")) return "整理合同材料";
+  if (content.includes("ROI")) return "补充 ROI 测算";
+  if (content.includes("演示")) return "安排场景演示";
+  if (content.includes("报价")) return "更新报价方案";
+
+  return `跟进${customer.painPoints[0]}`;
+}
+
+function cleanupAction(action) {
+  return action
+    .replace(/^(要求|希望|需要|请|要)/, "")
+    .replace(/给采购.*$/, "给采购")
+    .replace(/给客户.*$/, "给客户")
+    .trim();
 }

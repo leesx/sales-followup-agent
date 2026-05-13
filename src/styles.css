@@ -397,9 +397,7 @@ h1 {
   font-weight: 700;
 }
 
-.followup-form textarea,
-.followup-form input,
-.followup-form select {
+.followup-form textarea {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -409,17 +407,36 @@ h1 {
   outline: none;
 }
 
-.followup-form textarea:focus,
-.followup-form input:focus,
-.followup-form select:focus {
+.followup-form textarea:focus {
   border-color: #8fb2da;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
-.form-row {
+.parsed-preview {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 140px;
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  border: 1px solid #cfe0f4;
+  border-radius: 8px;
+  background: #f5f9ff;
+  padding: 12px;
+}
+
+.parsed-preview div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.parsed-preview span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.parsed-preview strong {
+  overflow-wrap: anywhere;
+  font-size: 14px;
 }
 
 .primary-button {
@@ -587,7 +604,7 @@ h1 {
   .metric-grid,
   .action-box dl,
   .brief-metrics,
-  .form-row {
+  .parsed-preview {
     grid-template-columns: 1fr;
   }
 

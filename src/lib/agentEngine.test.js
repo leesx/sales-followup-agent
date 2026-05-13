@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeCustomer, buildManagerBrief } from "./agentEngine.js";
+import { analyzeCustomer, buildManagerBrief, parseFollowupRecord } from "./agentEngine.js";
 
 const baseCustomer = {
   id: "test",
@@ -91,5 +91,39 @@ describe("agentEngine", () => {
     expect(result.generatedTask.title).toBe("补充 ROI 测算");
     expect(result.generatedTask.customerId).toBe("test");
     expect(result.generatedTask.status).toBe("open");
+  });
+
+  it("parses follow-up content into sentiment, blockers, next step, and due text", () => {
+    const parsed = parseFollowupRecord(
+      "客户确认预算已通过，但采购要求下周三前补充 ROI 测算和合同条款。",
+      baseCustomer,
+    );
+
+    expect(parsed.sentiment).toBe("positive");
+    expect(parsed.blockers).toContain("采购要求");
+    expect(parsed.nextStep).toBe("补充 ROI 测算和合同条款");
+    expect(parsed.dueText).toBe("下周三前");
+  });
+
+  it("uses parsed due text when generating task from unstructured follow-up", () => {
+    const parsed = parseFollowupRecord("客户担心实施周期，要求明天上午发实施排期。", baseCustomer);
+    const result = analyzeCustomer({
+      ...baseCustomer,
+      followups: [
+        {
+          id: "f-2",
+          content: parsed.content,
+          sentiment: parsed.sentiment,
+          nextStep: parsed.nextStep,
+          dueText: parsed.dueText,
+          blockers: parsed.blockers,
+          createdAt: "2026-05-13T09:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(result.generatedTask.title).toBe("发实施排期");
+    expect(result.generatedTask.dueText).toBe("明天上午");
+    expect(result.reasons.join(" ")).toContain("客户担心实施周期");
   });
 });
