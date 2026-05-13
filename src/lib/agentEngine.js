@@ -10,6 +10,12 @@ const riskRank = {
   low: 1,
 };
 
+const priorityRank = {
+  P0: 3,
+  P1: 2,
+  P2: 1,
+};
+
 const positiveSignals = ["确认", "通过", "同意", "愿意", "推进", "预算已", "已批", "已参加"];
 const negativeSignals = ["担心", "暂缓", "拒绝", "压价", "不确定", "延期", "没有预算", "风险"];
 const blockerPatterns = ["采购要求", "客户担心", "担心", "需要审批", "预算", "压价", "合规", "安全", "实施周期"];
@@ -125,6 +131,30 @@ export function buildManagerBrief(analyzedCustomers) {
       highRisk.length > 0
         ? `今天优先处理 ${highRisk.length} 个高风险商机，避免大额机会降温。`
         : "今天没有高风险商机，重点推进临近成交客户。",
+  };
+}
+
+export function buildTaskDashboard(tasks, customers) {
+  const customerMap = new Map(customers.map((customer) => [customer.id, customer]));
+  const enrichedTasks = tasks
+    .map((task) => {
+      const customer = customerMap.get(task.customerId);
+      return {
+        ...task,
+        company: customer?.company ?? "未知客户",
+        owner: customer?.owner ?? "未分配",
+      };
+    })
+    .sort((a, b) => {
+      if (a.status !== b.status) return a.status === "open" ? -1 : 1;
+      return (priorityRank[b.priority] ?? 0) - (priorityRank[a.priority] ?? 0);
+    });
+
+  return {
+    tasks: enrichedTasks,
+    openCount: enrichedTasks.filter((task) => task.status === "open").length,
+    doneCount: enrichedTasks.filter((task) => task.status === "done").length,
+    todayCount: enrichedTasks.filter((task) => task.dueText?.includes("今天")).length,
   };
 }
 

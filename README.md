@@ -26,6 +26,7 @@
 - **下一步动作**：给出优先级、渠道、时机和推进目标。
 - **跟进话术**：根据客户痛点和异议生成可直接使用的沟通草稿。
 - **本地任务管理**：Agent 根据最新跟进记录生成任务，支持本地勾选完成。
+- **任务中心**：集中展示所有客户任务，统计待处理、今日相关和已完成任务，并可点击任务跳转客户。
 - **主管日报**：汇总总管道、加权预测、高风险商机、逾期跟进和优先队列。
 
 ## 技术栈
@@ -83,8 +84,11 @@ sales-followup-agent/
 │   ├── components/
 │   │   ├── CustomerList.jsx
 │   │   ├── CustomerProfile.jsx
+│   │   ├── FollowupComposer.jsx
 │   │   ├── InsightPanel.jsx
-│   │   └── ManagerBrief.jsx
+│   │   ├── ManagerBrief.jsx
+│   │   ├── TaskDashboard.jsx
+│   │   └── TaskPanel.jsx
 │   ├── data/
 │   │   └── mockCrm.js
 │   ├── lib/
@@ -120,6 +124,7 @@ sales-followup-agent/
 - `analyzeCustomer(customer)`：分析单个客户，生成风险、摘要和下一步动作。
 - `analyzeCustomers(customers)`：批量分析并按风险排序。
 - `buildManagerBrief(analyzedCustomers)`：生成主管日报。
+- `buildTaskDashboard(tasks, customers)`：生成全局任务中心数据。
 - `formatCurrency(value)`：格式化人民币金额。
 
 ## 模拟数据
@@ -174,6 +179,7 @@ src/lib/agentEngine.test.js
 - 最新跟进记录应刷新客户状态。
 - 最新跟进记录中的下一步动作应生成任务。
 - 自然语言跟进记录应被解析成客户态度、阻塞点、下一步任务和截止时间。
+- 任务中心应按状态和优先级排序，并补齐客户名称。
 
 运行：
 

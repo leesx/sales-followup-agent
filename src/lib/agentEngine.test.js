@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeCustomer, buildManagerBrief, parseFollowupRecord } from "./agentEngine.js";
+import { analyzeCustomer, buildManagerBrief, buildTaskDashboard, parseFollowupRecord } from "./agentEngine.js";
 
 const baseCustomer = {
   id: "test",
@@ -125,5 +125,25 @@ describe("agentEngine", () => {
     expect(result.generatedTask.title).toBe("发实施排期");
     expect(result.generatedTask.dueText).toBe("明天上午");
     expect(result.reasons.join(" ")).toContain("客户担心实施周期");
+  });
+
+  it("builds a task dashboard sorted by status and priority", () => {
+    const dashboard = buildTaskDashboard(
+      [
+        { id: "t-1", customerId: "test", title: "低优先级", priority: "P2", dueText: "本周内", status: "open" },
+        { id: "t-2", customerId: "low", title: "已完成", priority: "P0", dueText: "今天", status: "done" },
+        { id: "t-3", customerId: "test", title: "高优先级", priority: "P0", dueText: "今天", status: "open" },
+      ],
+      [
+        { id: "test", company: "测试客户", owner: "销售" },
+        { id: "low", company: "低风险客户", owner: "销售" },
+      ],
+    );
+
+    expect(dashboard.openCount).toBe(2);
+    expect(dashboard.doneCount).toBe(1);
+    expect(dashboard.todayCount).toBe(2);
+    expect(dashboard.tasks[0].title).toBe("高优先级");
+    expect(dashboard.tasks[0].company).toBe("测试客户");
   });
 });

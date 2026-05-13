@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { customers } from "./data/mockCrm.js";
-import { analyzeCustomers, buildManagerBrief } from "./lib/agentEngine.js";
+import { analyzeCustomers, buildManagerBrief, buildTaskDashboard } from "./lib/agentEngine.js";
 import { getFollowups, getTasks, saveFollowup, saveTask, updateTaskStatus } from "./lib/browserDb.js";
 import { CustomerList } from "./components/CustomerList.jsx";
 import { CustomerProfile } from "./components/CustomerProfile.jsx";
 import { FollowupComposer } from "./components/FollowupComposer.jsx";
 import { InsightPanel } from "./components/InsightPanel.jsx";
 import { ManagerBrief } from "./components/ManagerBrief.jsx";
+import { TaskDashboard } from "./components/TaskDashboard.jsx";
 import { TaskPanel } from "./components/TaskPanel.jsx";
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
   );
   const analyzedCustomers = useMemo(() => analyzeCustomers(customersWithFollowups), [customersWithFollowups]);
   const brief = useMemo(() => buildManagerBrief(analyzedCustomers), [analyzedCustomers]);
+  const taskDashboard = useMemo(() => buildTaskDashboard(tasks, customers), [tasks]);
   const [selectedId, setSelectedId] = useState(analyzedCustomers[0]?.id);
   const selectedCustomer = analyzedCustomers.find((customer) => customer.id === selectedId);
   const selectedTasks = tasks.filter((task) => task.customerId === selectedId);
@@ -78,6 +80,11 @@ export default function App() {
           />
           <div className="detail-column">
             <ManagerBrief brief={brief} />
+            <TaskDashboard
+              dashboard={taskDashboard}
+              onSelectCustomer={setSelectedId}
+              onToggle={handleToggleTask}
+            />
             {selectedCustomer ? (
               <div className="detail-grid">
                 <div className="stack-column">
