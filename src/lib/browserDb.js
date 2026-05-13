@@ -1,7 +1,8 @@
 const DB_NAME = "sales-followup-agent";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const FOLLOWUPS_STORE = "followups";
 const TASKS_STORE = "tasks";
+const STAGES_STORE = "stageOverrides";
 
 function openDb() {
   return new Promise((resolve, reject) => {
@@ -18,6 +19,10 @@ function openDb() {
       if (!db.objectStoreNames.contains(TASKS_STORE)) {
         const store = db.createObjectStore(TASKS_STORE, { keyPath: "id" });
         store.createIndex("customerId", "customerId", { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(STAGES_STORE)) {
+        db.createObjectStore(STAGES_STORE, { keyPath: "customerId" });
       }
     };
 
@@ -58,9 +63,18 @@ export async function getTasks() {
   return runStore(TASKS_STORE, "readonly", (store) => store.getAll());
 }
 
+export async function getStageOverrides() {
+  return runStore(STAGES_STORE, "readonly", (store) => store.getAll());
+}
+
 export async function saveTask(task) {
   await runStore(TASKS_STORE, "readwrite", (store) => store.put(task));
   return task;
+}
+
+export async function saveStageOverride(stageOverride) {
+  await runStore(STAGES_STORE, "readwrite", (store) => store.put(stageOverride));
+  return stageOverride;
 }
 
 export async function updateTaskStatus(taskId, status) {

@@ -146,4 +146,50 @@ describe("agentEngine", () => {
     expect(dashboard.tasks[0].title).toBe("高优先级");
     expect(dashboard.tasks[0].company).toBe("测试客户");
   });
+
+  it("suggests stage change when a follow-up shows the deal is entering procurement", () => {
+    const parsed = parseFollowupRecord("客户确认预算已通过，采购要求下周三前补充 ROI 测算和合同条款。", {
+      ...baseCustomer,
+      stage: "方案评估",
+    });
+    const result = analyzeCustomer({
+      ...baseCustomer,
+      stage: "方案评估",
+      followups: [
+        {
+          id: "f-stage",
+          content: parsed.content,
+          sentiment: parsed.sentiment,
+          nextStep: parsed.nextStep,
+          dueText: parsed.dueText,
+          blockers: parsed.blockers,
+          createdAt: "2026-05-13T09:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(result.stageSuggestion.currentStage).toBe("方案评估");
+    expect(result.stageSuggestion.suggestedStage).toBe("商务谈判");
+    expect(result.stageSuggestion.reason).toContain("预算");
+  });
+
+  it("does not suggest stage change without enough progress signal", () => {
+    const result = analyzeCustomer({
+      ...baseCustomer,
+      stage: "商务谈判",
+      followups: [
+        {
+          id: "f-neutral",
+          content: "客户还在内部讨论，预算和采购时间都未确认。",
+          sentiment: "neutral",
+          nextStep: "继续跟进内部讨论",
+          dueText: "本周内",
+          blockers: [],
+          createdAt: "2026-05-13T09:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(result.stageSuggestion).toBeNull();
+  });
 });

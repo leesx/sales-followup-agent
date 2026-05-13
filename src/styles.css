@@ -380,6 +380,61 @@ h1 {
   padding: 14px;
 }
 
+.stage-suggestion {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #b8d9c8;
+  border-radius: 8px;
+  background: #f3fbf6;
+  padding: 14px;
+}
+
+.stage-suggestion > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stage-suggestion h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 15px;
+}
+
+.stage-suggestion > div:first-child span {
+  border-radius: 999px;
+  background: #dff3e8;
+  color: var(--green);
+  padding: 4px 9px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.stage-suggestion dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.stage-suggestion dt {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.stage-suggestion dd {
+  margin: 4px 0 0;
+  font-weight: 800;
+}
+
+.stage-suggestion p {
+  margin: 0;
+  line-height: 1.65;
+}
+
 .followup-form {
   display: grid;
   gap: 14px;
@@ -450,6 +505,16 @@ h1 {
   background: var(--blue);
   color: #ffffff;
   padding: 10px 14px;
+  font-weight: 800;
+}
+
+.secondary-button {
+  width: fit-content;
+  border: 1px solid #a7c8b7;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--green);
+  padding: 9px 12px;
   font-weight: 800;
 }
 
@@ -682,6 +747,7 @@ h1 {
 
   .metric-grid,
   .action-box dl,
+  .stage-suggestion dl,
   .brief-metrics,
   .parsed-preview,
   .task-summary-grid {

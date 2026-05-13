@@ -1,6 +1,6 @@
-import { Bot, ClipboardCheck, MessageSquareText, ShieldAlert } from "lucide-react";
+import { Bot, ClipboardCheck, GitBranch, MessageSquareText, ShieldAlert } from "lucide-react";
 
-export function InsightPanel({ customer }) {
+export function InsightPanel({ customer, onConfirmStage }) {
   return (
     <section className="panel insight-panel">
       <div className="panel-header">
@@ -28,6 +28,32 @@ export function InsightPanel({ customer }) {
             ))}
           </ul>
         </div>
+
+        {customer.stageSuggestion ? (
+          <div className="stage-suggestion">
+            <div>
+              <h3>
+                <GitBranch size={17} />
+                阶段建议
+              </h3>
+              <span>{Math.round(customer.stageSuggestion.confidence * 100)}%</span>
+            </div>
+            <dl>
+              <div>
+                <dt>当前阶段</dt>
+                <dd>{customer.stageSuggestion.currentStage}</dd>
+              </div>
+              <div>
+                <dt>建议阶段</dt>
+                <dd>{customer.stageSuggestion.suggestedStage}</dd>
+              </div>
+            </dl>
+            <p>{customer.stageSuggestion.reason}</p>
+            <button className="secondary-button" onClick={() => onConfirmStage(customer.stageSuggestion)} type="button">
+              确认变更
+            </button>
+          </div>
+        ) : null}
 
         <div className="action-box">
           <div>

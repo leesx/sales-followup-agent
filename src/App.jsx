@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { customers } from "./data/mockCrm.js";
 import { analyzeCustomers, buildManagerBrief, buildTaskDashboard } from "./lib/agentEngine.js";
-import { getFollowups, getTasks, saveFollowup, saveTask, updateTaskStatus } from "./lib/browserDb.js";
+import {
+  getFollowups,
+  getStageOverrides,
+  getTasks,
+  saveFollowup,
+  saveStageOverride,
+  saveTask,
+  updateTaskStatus,
+} from "./lib/browserDb.js";
 import { CustomerList } from "./components/CustomerList.jsx";
 import { CustomerProfile } from "./components/CustomerProfile.jsx";
 import { FollowupComposer } from "./components/FollowupComposer.jsx";
@@ -13,13 +21,15 @@ import { TaskPanel } from "./components/TaskPanel.jsx";
 export default function App() {
   const [followups, setFollowups] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [stageOverrides, setStageOverrides] = useState([]);
   const [storageReady, setStorageReady] = useState(false);
 
   useEffect(() => {
-    Promise.all([getFollowups(), getTasks()])
-      .then(([savedFollowups, savedTasks]) => {
+    Promise.all([getFollowups(), getTasks(), getStageOverrides()])
+      .then(([savedFollowups, savedTasks, savedStageOverrides]) => {
         setFollowups(savedFollowups);
         setTasks(savedTasks);
+        setStageOverrides(savedStageOverrides);
       })
       .finally(() => setStorageReady(true));
   }, []);
@@ -28,9 +38,10 @@ export default function App() {
     () =>
       customers.map((customer) => ({
         ...customer,
+        stage: stageOverrides.find((override) => override.customerId === customer.id)?.stage ?? customer.stage,
         followups: followups.filter((followup) => followup.customerId === customer.id),
       })),
-    [followups],
+    [followups, stageOverrides],
   );
   const analyzedCustomers = useMemo(() => analyzeCustomers(customersWithFollowups), [customersWithFollowups]);
   const brief = useMemo(() => buildManagerBrief(analyzedCustomers), [analyzedCustomers]);
@@ -55,6 +66,21 @@ export default function App() {
     if (!updatedTask) return;
 
     setTasks((current) => current.map((item) => (item.id === updatedTask.id ? updatedTask : item)));
+  }
+
+  async function handleConfirmStage(suggestion) {
+    const savedStageOverride = await saveStageOverride({
+      customerId: suggestion.customerId,
+      stage: suggestion.suggestedStage,
+      previousStage: suggestion.currentStage,
+      reason: suggestion.reason,
+      confirmedAt: new Date().toISOString(),
+    });
+
+    setStageOverrides((current) => [
+      savedStageOverride,
+      ...current.filter((override) => override.customerId !== savedStageOverride.customerId),
+    ]);
   }
 
   return (
@@ -92,7 +118,7 @@ export default function App() {
                   <FollowupComposer customer={selectedCustomer} onSave={handleSaveFollowup} />
                 </div>
                 <div className="stack-column">
-                  <InsightPanel customer={selectedCustomer} />
+                  <InsightPanel customer={selectedCustomer} onConfirmStage={handleConfirmStage} />
                   <TaskPanel tasks={selectedTasks} onToggle={handleToggleTask} />
                 </div>
               </div>
