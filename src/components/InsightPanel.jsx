@@ -1,0 +1,63 @@
+import { Bot, ClipboardCheck, MessageSquareText, ShieldAlert } from "lucide-react";
+
+export function InsightPanel({ customer }) {
+  return (
+    <section className="panel insight-panel">
+      <div className="panel-header">
+        <div>
+          <h2>Agent 分析</h2>
+          <p className="muted">规则引擎生成，后续可替换为 LLM</p>
+        </div>
+        <Bot size={22} />
+      </div>
+
+      <div className="insight-body">
+        <div className="agent-summary">
+          <h3>客户摘要</h3>
+          <p>{customer.summary}</p>
+        </div>
+
+        <div className="section-block">
+          <h3>
+            <ShieldAlert size={17} />
+            风险原因
+          </h3>
+          <ul className="reason-list">
+            {customer.reasons.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="action-box">
+          <div>
+            <h3>
+              <ClipboardCheck size={17} />
+              下一步动作
+            </h3>
+            <span className="priority-pill">{customer.nextAction.priority}</span>
+          </div>
+          <strong>{customer.nextAction.title}</strong>
+          <dl>
+            <div>
+              <dt>渠道</dt>
+              <dd>{customer.nextAction.channel}</dd>
+            </div>
+            <div>
+              <dt>时机</dt>
+              <dd>{customer.nextAction.timing}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="message-draft">
+          <h3>
+            <MessageSquareText size={17} />
+            跟进话术
+          </h3>
+          <p>{customer.nextAction.draft}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
