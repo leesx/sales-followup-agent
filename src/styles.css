@@ -108,6 +108,11 @@ h1 {
   gap: 18px;
 }
 
+.stack-column {
+  display: grid;
+  gap: 18px;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(340px, 1.05fr);
@@ -375,6 +380,112 @@ h1 {
   padding: 14px;
 }
 
+.followup-form {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.followup-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.followup-form label span {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.followup-form textarea,
+.followup-form input,
+.followup-form select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 10px 11px;
+  outline: none;
+}
+
+.followup-form textarea:focus,
+.followup-form input:focus,
+.followup-form select:focus {
+  border-color: #8fb2da;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px;
+  gap: 12px;
+}
+
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: fit-content;
+  border: 0;
+  border-radius: 8px;
+  background: var(--blue);
+  color: #ffffff;
+  padding: 10px 14px;
+  font-weight: 800;
+}
+
+.task-list {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.task-item {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  width: 100%;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  color: var(--ink);
+  padding: 12px;
+  text-align: left;
+}
+
+.task-item svg {
+  color: var(--blue);
+  margin-top: 1px;
+}
+
+.task-item span,
+.task-item em {
+  display: block;
+}
+
+.task-item em {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.task-item.is-done strong {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.empty-state {
+  margin: 0;
+  border: 1px dashed #bdcad7;
+  border-radius: 8px;
+  color: var(--text-muted);
+  padding: 14px;
+}
+
 .manager-brief {
   overflow: hidden;
 }
@@ -475,7 +586,8 @@ h1 {
 
   .metric-grid,
   .action-box dl,
-  .brief-metrics {
+  .brief-metrics,
+  .form-row {
     grid-template-columns: 1fr;
   }
 

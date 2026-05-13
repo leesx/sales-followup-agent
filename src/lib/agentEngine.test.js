@@ -54,4 +54,42 @@ describe("agentEngine", () => {
     expect(brief.overdueCount).toBe(1);
     expect(brief.priorityQueue).toHaveLength(1);
   });
+
+  it("uses follow-up records to refresh customer status and reduce stale-contact risk", () => {
+    const result = analyzeCustomer({
+      ...baseCustomer,
+      followups: [
+        {
+          id: "f-1",
+          content: "客户确认预算已通过，希望下周安排采购和技术一起评审合同。",
+          sentiment: "positive",
+          nextStep: "安排合同评审会",
+          createdAt: "2026-05-13T09:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(result.lastContactDays).toBe(0);
+    expect(result.summary).toContain("最新跟进显示");
+    expect(result.reasons.join(" ")).not.toContain("15 天未跟进");
+  });
+
+  it("generates a task from the latest follow-up next step", () => {
+    const result = analyzeCustomer({
+      ...baseCustomer,
+      followups: [
+        {
+          id: "f-1",
+          content: "客户要求补充 ROI 测算并发给采购。",
+          sentiment: "neutral",
+          nextStep: "补充 ROI 测算",
+          createdAt: "2026-05-13T09:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(result.generatedTask.title).toBe("补充 ROI 测算");
+    expect(result.generatedTask.customerId).toBe("test");
+    expect(result.generatedTask.status).toBe("open");
+  });
 });

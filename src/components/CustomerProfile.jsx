@@ -32,6 +32,12 @@ export function CustomerProfile({ customer }) {
         <div className="section-block">
           <h3>最近动态</h3>
           <ol className="timeline">
+            {customer.followups?.map((followup) => (
+              <li key={followup.id}>
+                <strong>本地跟进：</strong>
+                {followup.content}
+              </li>
+            ))}
             {customer.activities.map((activity) => (
               <li key={activity}>{activity}</li>
             ))}

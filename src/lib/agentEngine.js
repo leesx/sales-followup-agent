@@ -15,15 +15,17 @@ export function formatCurrency(value) {
 }
 
 export function analyzeCustomer(customer) {
+  const latestFollowup = getLatestFollowup(customer.followups);
+  const effectiveLastContactDays = latestFollowup ? 0 : customer.lastContactDays;
   const reasons = [];
   let riskScore = 0;
 
-  if (customer.lastContactDays >= 14) {
+  if (effectiveLastContactDays >= 14) {
     riskScore += 35;
-    reasons.push(`已 ${customer.lastContactDays} 天未跟进，客户热度可能下降`);
-  } else if (customer.lastContactDays >= 7) {
+    reasons.push(`已 ${effectiveLastContactDays} 天未跟进，客户热度可能下降`);
+  } else if (effectiveLastContactDays >= 7) {
     riskScore += 22;
-    reasons.push(`已 ${customer.lastContactDays} 天未跟进，需要尽快恢复节奏`);
+    reasons.push(`已 ${effectiveLastContactDays} 天未跟进，需要尽快恢复节奏`);
   }
 
   if (customer.dealValue >= 250000 && customer.probability < 70) {
@@ -50,12 +52,14 @@ export function analyzeCustomer(customer) {
 
   return {
     ...customer,
+    lastContactDays: effectiveLastContactDays,
     riskScore: Math.max(0, riskScore),
     riskLevel,
     riskLabel: riskLevel === "high" ? "高风险" : riskLevel === "medium" ? "中风险" : "低风险",
     reasons: reasons.length ? reasons : ["跟进节奏正常，暂无明显阻塞"],
-    summary: buildSummary(customer, riskLevel),
+    summary: buildSummary(customer, riskLevel, latestFollowup),
     nextAction,
+    generatedTask: buildGeneratedTask(customer, nextAction, latestFollowup),
   };
 }
 
@@ -89,12 +93,24 @@ export function buildManagerBrief(analyzedCustomers) {
   };
 }
 
-function buildSummary(customer, riskLevel) {
+function buildSummary(customer, riskLevel, latestFollowup) {
   const riskTone = riskLevel === "high" ? "需要主管介入" : riskLevel === "medium" ? "需要销售加速推进" : "可按计划推进";
-  return `${customer.company} 处于${customer.stage}阶段，金额 ${formatCurrency(customer.dealValue)}，预计 ${customer.expectedCloseDays} 天内决策。客户核心关注 ${customer.painPoints[0]}，当前判断为${riskTone}。`;
+  const followupSummary = latestFollowup ? `最新跟进显示：${latestFollowup.content}` : "";
+  return `${customer.company} 处于${customer.stage}阶段，金额 ${formatCurrency(customer.dealValue)}，预计 ${customer.expectedCloseDays} 天内决策。客户核心关注 ${customer.painPoints[0]}，当前判断为${riskTone}。${followupSummary}`;
 }
 
 function buildNextAction(customer, riskLevel) {
+  const latestFollowup = getLatestFollowup(customer.followups);
+  if (latestFollowup?.nextStep) {
+    return {
+      priority: riskLevel === "high" ? "P0" : riskLevel === "medium" ? "P1" : "P2",
+      channel: "微信 + 任务提醒",
+      timing: "今天完成",
+      title: latestFollowup.nextStep,
+      draft: `${customer.contact}，我根据我们最新沟通先推进「${latestFollowup.nextStep}」。完成后我会把关键材料同步给您，方便您继续内部推进。`,
+    };
+  }
+
   if (riskLevel === "high") {
     return {
       priority: "P0",
@@ -122,4 +138,20 @@ function buildNextAction(customer, riskLevel) {
     title: "延续需求共识并安排下一次演示",
     draft: `${customer.contact}，基于您关注的「${customer.painPoints[0]}」，我建议下次直接演示对应场景，并带上可落地的试用路径。您看本周哪个时间方便？`,
   };
+}
+
+function buildGeneratedTask(customer, nextAction, latestFollowup) {
+  return {
+    id: `task-${customer.id}-${latestFollowup?.id ?? "suggested"}`,
+    customerId: customer.id,
+    title: latestFollowup?.nextStep ?? nextAction.title,
+    dueText: nextAction.timing,
+    priority: nextAction.priority,
+    status: "open",
+    sourceFollowupId: latestFollowup?.id ?? null,
+  };
+}
+
+function getLatestFollowup(followups = []) {
+  return [...followups].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0] ?? null;
 }
