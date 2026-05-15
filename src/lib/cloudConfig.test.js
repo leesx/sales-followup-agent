@@ -31,4 +31,12 @@ describe("cloudConfig", () => {
     expect(config.isSupabaseConfigured).toBe(true);
     expect(config.isBillingConfigured).toBe(false);
   });
+
+  it("reads an explicit auth redirect URL", () => {
+    const config = getCloudConfig({
+      VITE_AUTH_REDIRECT_URL: "https://sales.dengyu.xyz",
+    });
+
+    expect(config.authRedirectUrl).toBe("https://sales.dengyu.xyz");
+  });
 });

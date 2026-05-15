@@ -7,8 +7,13 @@ export function getCloudConfig(env = import.meta.env) {
     env.NEXT_PUBLIC_SALES_FOLLOWUP_SUPABASE_PUBLISHABLE_KEY ??
     "";
   const stripePriceId = env.VITE_STRIPE_PRICE_ID ?? "";
+  const authRedirectUrl =
+    env.VITE_AUTH_REDIRECT_URL ??
+    env.NEXT_PUBLIC_SALES_FOLLOWUP_AUTH_REDIRECT_URL ??
+    "";
 
   return {
+    authRedirectUrl,
     supabaseUrl,
     supabaseAnonKey,
     stripePriceId,

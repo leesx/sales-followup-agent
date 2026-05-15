@@ -32,7 +32,7 @@ export function CloudAccountPanel({ onSessionChange }) {
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: config.authRedirectUrl || window.location.origin,
       },
     });
 
