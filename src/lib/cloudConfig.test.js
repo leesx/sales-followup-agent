@@ -19,4 +19,16 @@ describe("cloudConfig", () => {
     expect(config.isSupabaseConfigured).toBe(true);
     expect(config.isBillingConfigured).toBe(true);
   });
+
+  it("supports Vercel Supabase integration public env names", () => {
+    const config = getCloudConfig({
+      NEXT_PUBLIC_SALES_FOLLOWUP_SUPABASE_URL: "https://example.supabase.co",
+      NEXT_PUBLIC_SALES_FOLLOWUP_SUPABASE_ANON_KEY: "anon-key",
+    });
+
+    expect(config.supabaseUrl).toBe("https://example.supabase.co");
+    expect(config.supabaseAnonKey).toBe("anon-key");
+    expect(config.isSupabaseConfigured).toBe(true);
+    expect(config.isBillingConfigured).toBe(false);
+  });
 });
