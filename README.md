@@ -29,6 +29,7 @@
 - **本地任务管理**：Agent 根据最新跟进记录生成任务，支持本地勾选完成。
 - **任务中心**：集中展示所有客户任务，统计待处理、今日相关和已完成任务，并可点击任务跳转客户。
 - **数据控制台**：查看本地数据概况，支持推荐演示数据、导入、导出和清空。
+- **负责人看板**：按销售负责人筛选客户、任务、风险和阶段推进情况。
 - **主管日报**：汇总总管道、加权预测、高风险商机、逾期跟进和优先队列。
 
 ## 技术栈
@@ -90,6 +91,7 @@ sales-followup-agent/
 │   │   ├── FollowupComposer.jsx
 │   │   ├── InsightPanel.jsx
 │   │   ├── ManagerBrief.jsx
+│   │   ├── OwnerDashboard.jsx
 │   │   ├── TaskDashboard.jsx
 │   │   └── TaskPanel.jsx
 │   ├── data/
@@ -130,6 +132,8 @@ sales-followup-agent/
 - `analyzeCustomers(customers)`：批量分析并按风险排序。
 - `buildManagerBrief(analyzedCustomers)`：生成主管日报。
 - `buildTaskDashboard(tasks, customers)`：生成全局任务中心数据。
+- `buildOwnerDashboard({ customers, tasks, stageOverrides, owner })`：生成负责人筛选后的管理指标。
+- `getOwnerOptions(customers)`：生成销售负责人筛选项。
 - `formatCurrency(value)`：格式化人民币金额。
 
 ## 模拟数据
@@ -196,6 +200,7 @@ src/lib/agentEngine.test.js
 - 任务中心应按状态和优先级排序，并补齐客户名称。
 - 跟进记录出现采购/预算等推进信号时，应生成阶段变更建议。
 - 本地数据快照应支持导出、导入校验、汇总统计和推荐演示数据生成。
+- 负责人看板应按销售过滤客户和任务，并统计客户数、高风险、待处理任务、应跟进和阶段推进。
 
 运行：
 

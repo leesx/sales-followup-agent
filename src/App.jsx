@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { customers } from "./data/mockCrm.js";
-import { analyzeCustomers, buildManagerBrief, buildTaskDashboard } from "./lib/agentEngine.js";
+import {
+  analyzeCustomers,
+  buildManagerBrief,
+  buildOwnerDashboard,
+  buildTaskDashboard,
+  getOwnerOptions,
+} from "./lib/agentEngine.js";
 import {
   clearLocalData,
   getFollowups,
@@ -24,6 +30,7 @@ import { DataConsole } from "./components/DataConsole.jsx";
 import { FollowupComposer } from "./components/FollowupComposer.jsx";
 import { InsightPanel } from "./components/InsightPanel.jsx";
 import { ManagerBrief } from "./components/ManagerBrief.jsx";
+import { OwnerDashboard } from "./components/OwnerDashboard.jsx";
 import { TaskDashboard } from "./components/TaskDashboard.jsx";
 import { TaskPanel } from "./components/TaskPanel.jsx";
 
@@ -32,6 +39,7 @@ export default function App() {
   const [tasks, setTasks] = useState([]);
   const [stageOverrides, setStageOverrides] = useState([]);
   const [storageReady, setStorageReady] = useState(false);
+  const [selectedOwner, setSelectedOwner] = useState("全部销售");
 
   useEffect(() => {
     Promise.all([getFollowups(), getTasks(), getStageOverrides()])
@@ -53,8 +61,27 @@ export default function App() {
     [followups, stageOverrides],
   );
   const analyzedCustomers = useMemo(() => analyzeCustomers(customersWithFollowups), [customersWithFollowups]);
-  const brief = useMemo(() => buildManagerBrief(analyzedCustomers), [analyzedCustomers]);
-  const taskDashboard = useMemo(() => buildTaskDashboard(tasks, customers), [tasks]);
+  const ownerOptions = useMemo(() => getOwnerOptions(customers), []);
+  const ownerDashboard = useMemo(
+    () =>
+      buildOwnerDashboard({
+        customers: analyzedCustomers,
+        tasks,
+        stageOverrides,
+        owner: selectedOwner,
+      }),
+    [analyzedCustomers, tasks, stageOverrides, selectedOwner],
+  );
+  const filteredCustomerIds = useMemo(
+    () => new Set(ownerDashboard.customers.map((customer) => customer.id)),
+    [ownerDashboard.customers],
+  );
+  const filteredTasks = useMemo(
+    () => tasks.filter((task) => filteredCustomerIds.has(task.customerId)),
+    [tasks, filteredCustomerIds],
+  );
+  const brief = useMemo(() => buildManagerBrief(ownerDashboard.customers), [ownerDashboard.customers]);
+  const taskDashboard = useMemo(() => buildTaskDashboard(filteredTasks, ownerDashboard.customers), [filteredTasks, ownerDashboard.customers]);
   const dataSummary = useMemo(
     () => buildLocalDataSummary({ followups, tasks, stageOverrides }),
     [followups, tasks, stageOverrides],
@@ -62,6 +89,19 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(analyzedCustomers[0]?.id);
   const selectedCustomer = analyzedCustomers.find((customer) => customer.id === selectedId);
   const selectedTasks = tasks.filter((task) => task.customerId === selectedId);
+
+  function handleOwnerChange(owner) {
+    setSelectedOwner(owner);
+    const nextCustomers = buildOwnerDashboard({
+      customers: analyzedCustomers,
+      tasks,
+      stageOverrides,
+      owner,
+    }).customers;
+    if (nextCustomers.length && !nextCustomers.some((customer) => customer.id === selectedId)) {
+      setSelectedId(nextCustomers[0].id);
+    }
+  }
 
   async function handleSaveFollowup(followup) {
     const savedFollowup = await saveFollowup(followup);
@@ -161,7 +201,7 @@ export default function App() {
 
         <div className="dashboard-grid">
           <CustomerList
-            customers={analyzedCustomers}
+            customers={ownerDashboard.customers}
             selectedId={selectedId}
             onSelect={setSelectedId}
           />
@@ -172,6 +212,12 @@ export default function App() {
               onExport={handleExportLocalData}
               onImport={handleImportLocalData}
               onLoadDemo={handleLoadDemoData}
+            />
+            <OwnerDashboard
+              dashboard={ownerDashboard}
+              ownerOptions={ownerOptions}
+              selectedOwner={selectedOwner}
+              onOwnerChange={handleOwnerChange}
             />
             <ManagerBrief brief={brief} />
             <TaskDashboard

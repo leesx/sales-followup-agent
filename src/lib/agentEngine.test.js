@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { analyzeCustomer, buildManagerBrief, buildTaskDashboard, parseFollowupRecord } from "./agentEngine.js";
+import {
+  analyzeCustomer,
+  buildManagerBrief,
+  buildOwnerDashboard,
+  buildTaskDashboard,
+  getOwnerOptions,
+  parseFollowupRecord,
+} from "./agentEngine.js";
 
 const baseCustomer = {
   id: "test",
@@ -191,5 +198,61 @@ describe("agentEngine", () => {
     });
 
     expect(result.stageSuggestion).toBeNull();
+  });
+
+  it("extracts owner filter options from customers", () => {
+    const options = getOwnerOptions([
+      { owner: "周敏" },
+      { owner: "李想" },
+      { owner: "周敏" },
+    ]);
+
+    expect(options).toEqual(["全部销售", "周敏", "李想"]);
+  });
+
+  it("builds owner dashboard with filtered customers and tasks", () => {
+    const zhouCustomer = analyzeCustomer({
+      ...baseCustomer,
+      id: "zhou",
+      owner: "周敏",
+      lastContactDays: 9,
+      followups: [
+        {
+          id: "f-zhou",
+          content: "客户确认预算已通过，采购要求下周三前补充 ROI 测算和合同条款。",
+          sentiment: "positive",
+          nextStep: "补充 ROI 测算和合同条款",
+          dueText: "下周三前",
+          blockers: ["采购要求"],
+          createdAt: "2026-05-13T09:00:00.000Z",
+        },
+      ],
+    });
+    const liCustomer = analyzeCustomer({
+      ...baseCustomer,
+      id: "li",
+      owner: "李想",
+      dealValue: 50000,
+      probability: 88,
+      lastContactDays: 1,
+      expectedCloseDays: 45,
+      objections: [],
+    });
+    const dashboard = buildOwnerDashboard({
+      customers: [zhouCustomer, liCustomer],
+      tasks: [
+        { id: "t-zhou", customerId: "zhou", status: "open" },
+        { id: "t-li", customerId: "li", status: "open" },
+      ],
+      stageOverrides: [{ customerId: "zhou", stage: "商务谈判" }],
+      owner: "周敏",
+    });
+
+    expect(dashboard.customers).toHaveLength(1);
+    expect(dashboard.tasks).toHaveLength(1);
+    expect(dashboard.customerCount).toBe(1);
+    expect(dashboard.pendingTaskCount).toBe(1);
+    expect(dashboard.stageProgressCount).toBe(1);
+    expect(dashboard.followupDueCount).toBe(0);
   });
 });

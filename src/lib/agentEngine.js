@@ -161,6 +161,30 @@ export function buildTaskDashboard(tasks, customers) {
   };
 }
 
+export function getOwnerOptions(customers) {
+  return ["全部销售", ...new Set(customers.map((customer) => customer.owner))];
+}
+
+export function buildOwnerDashboard({ customers, tasks, stageOverrides, owner }) {
+  const filteredCustomers = owner === "全部销售"
+    ? customers
+    : customers.filter((customer) => customer.owner === owner);
+  const customerIds = new Set(filteredCustomers.map((customer) => customer.id));
+  const filteredTasks = tasks.filter((task) => customerIds.has(task.customerId));
+  const filteredStageOverrides = stageOverrides.filter((stageOverride) => customerIds.has(stageOverride.customerId));
+
+  return {
+    owner,
+    customers: filteredCustomers,
+    tasks: filteredTasks,
+    customerCount: filteredCustomers.length,
+    highRiskCount: filteredCustomers.filter((customer) => customer.riskLevel === "high").length,
+    pendingTaskCount: filteredTasks.filter((task) => task.status === "open").length,
+    followupDueCount: filteredCustomers.filter((customer) => customer.lastContactDays >= 7).length,
+    stageProgressCount: filteredStageOverrides.length,
+  };
+}
+
 function buildSummary(customer, riskLevel, latestFollowup) {
   const riskTone = riskLevel === "high" ? "需要主管介入" : riskLevel === "medium" ? "需要销售加速推进" : "可按计划推进";
   const followupSummary = latestFollowup ? `最新跟进显示：${latestFollowup.content}` : "";
