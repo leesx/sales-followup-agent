@@ -651,6 +651,74 @@ h1 {
   overflow: hidden;
 }
 
+.data-console {
+  overflow: hidden;
+}
+
+.data-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+}
+
+.data-summary-card {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  padding: 12px;
+}
+
+.data-summary-card span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.data-summary-card strong {
+  font-size: 22px;
+}
+
+.data-console-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 12px 18px;
+}
+
+.data-console-footer > span {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.data-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.data-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.data-actions .danger-button {
+  border-color: #f1c5c5;
+  color: var(--red);
+}
+
 .brief-head {
   display: flex;
   justify-content: space-between;
@@ -748,10 +816,20 @@ h1 {
   .metric-grid,
   .action-box dl,
   .stage-suggestion dl,
+  .data-summary-grid,
   .brief-metrics,
   .parsed-preview,
   .task-summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .data-console-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .data-actions {
+    justify-content: flex-start;
   }
 
   .priority-row {

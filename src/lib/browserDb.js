@@ -50,6 +50,27 @@ function runStore(storeName, mode, action) {
   );
 }
 
+function runStores(storeNames, mode, action) {
+  return openDb().then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const transaction = db.transaction(storeNames, mode);
+        const stores = Object.fromEntries(storeNames.map((storeName) => [storeName, transaction.objectStore(storeName)]));
+
+        transaction.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+        transaction.onerror = () => {
+          db.close();
+          reject(transaction.error);
+        };
+
+        action(stores);
+      }),
+  );
+}
+
 export async function getFollowups() {
   return runStore(FOLLOWUPS_STORE, "readonly", (store) => store.getAll());
 }
@@ -89,4 +110,26 @@ export async function updateTaskStatus(taskId, status) {
   };
   await saveTask(updatedTask);
   return updatedTask;
+}
+
+export async function clearLocalData() {
+  await runStores([FOLLOWUPS_STORE, TASKS_STORE, STAGES_STORE], "readwrite", (stores) => {
+    stores[FOLLOWUPS_STORE].clear();
+    stores[TASKS_STORE].clear();
+    stores[STAGES_STORE].clear();
+  });
+}
+
+export async function replaceLocalData({ followups = [], tasks = [], stageOverrides = [] }) {
+  await runStores([FOLLOWUPS_STORE, TASKS_STORE, STAGES_STORE], "readwrite", (stores) => {
+    stores[FOLLOWUPS_STORE].clear();
+    stores[TASKS_STORE].clear();
+    stores[STAGES_STORE].clear();
+
+    followups.forEach((followup) => stores[FOLLOWUPS_STORE].put(followup));
+    tasks.forEach((task) => stores[TASKS_STORE].put(task));
+    stageOverrides.forEach((stageOverride) => stores[STAGES_STORE].put(stageOverride));
+  });
+
+  return { followups, tasks, stageOverrides };
 }
