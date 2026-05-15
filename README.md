@@ -39,6 +39,11 @@
 - JavaScript
 - Vitest
 - lucide-react
+- Supabase Auth
+- Supabase PostgreSQL
+- Supabase Edge Functions
+- Stripe Checkout
+- Vercel
 
 ## 快速开始
 
@@ -231,6 +236,74 @@ npm run build
 ```text
 dist
 ```
+
+## SaaS 后端配置
+
+项目已经预置 Supabase + Stripe 的 SaaS 骨架：
+
+- Supabase Auth：邮箱 magic link 登录。
+- Supabase PostgreSQL：客户、跟进、任务、阶段覆盖、阶段历史、订阅表。
+- Supabase Edge Functions：创建 Stripe Checkout Session 和接收 Stripe Webhook。
+- Stripe：订阅支付入口。
+- Vercel：前端部署。
+
+本地环境变量：
+
+```bash
+cp .env.example .env.local
+```
+
+填写：
+
+```text
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+VITE_STRIPE_PRICE_ID=price_your_subscription_price_id
+```
+
+Supabase schema 在：
+
+```text
+supabase/migrations/202605150001_initial_schema.sql
+```
+
+Edge Functions 在：
+
+```text
+supabase/functions/create-checkout-session
+supabase/functions/stripe-webhook
+```
+
+部署 Supabase 后端：
+
+```bash
+supabase login
+supabase link --project-ref <project-ref>
+supabase db push
+supabase functions deploy create-checkout-session
+supabase functions deploy stripe-webhook
+```
+
+设置 Supabase Edge Function secrets：
+
+```bash
+supabase secrets set STRIPE_SECRET_KEY=sk_live_xxx
+supabase secrets set STRIPE_PRICE_ID=price_xxx
+supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_xxx
+supabase secrets set SITE_URL=https://sales-followup-agent.vercel.app
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+设置 Vercel 环境变量：
+
+```bash
+vercel env add VITE_SUPABASE_URL production
+vercel env add VITE_SUPABASE_ANON_KEY production
+vercel env add VITE_STRIPE_PRICE_ID production
+vercel --prod
+```
+
+没有配置 Supabase 环境变量时，应用会继续以本地 IndexedDB 演示模式运行。
 
 ## 后续演进方向
 

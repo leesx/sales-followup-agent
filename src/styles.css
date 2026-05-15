@@ -655,6 +655,82 @@ h1 {
   overflow: hidden;
 }
 
+.cloud-account-panel {
+  overflow: hidden;
+}
+
+.cloud-empty,
+.cloud-session,
+.cloud-login-form,
+.cloud-message {
+  padding: 14px 18px;
+}
+
+.cloud-empty {
+  display: grid;
+  gap: 6px;
+}
+
+.cloud-empty p,
+.cloud-message {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.cloud-session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cloud-session span,
+.cloud-login-form span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.cloud-session strong {
+  display: block;
+  margin-top: 4px;
+}
+
+.cloud-actions,
+.cloud-login-form {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cloud-actions button,
+.cloud-login-form button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 9px 11px;
+  font-weight: 800;
+}
+
+.cloud-login-form label {
+  display: grid;
+  gap: 6px;
+  min-width: min(280px, 100%);
+}
+
+.cloud-login-form input {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 11px;
+}
+
 .owner-dashboard {
   overflow: hidden;
 }
@@ -878,6 +954,11 @@ h1 {
   }
 
   .data-console-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cloud-session {
     align-items: flex-start;
     flex-direction: column;
   }

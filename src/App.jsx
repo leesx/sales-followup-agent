@@ -26,6 +26,7 @@ import {
 } from "./lib/dataManagement.js";
 import { CustomerList } from "./components/CustomerList.jsx";
 import { CustomerProfile } from "./components/CustomerProfile.jsx";
+import { CloudAccountPanel } from "./components/CloudAccountPanel.jsx";
 import { DataConsole } from "./components/DataConsole.jsx";
 import { FollowupComposer } from "./components/FollowupComposer.jsx";
 import { InsightPanel } from "./components/InsightPanel.jsx";
@@ -206,6 +207,7 @@ export default function App() {
             onSelect={setSelectedId}
           />
           <div className="detail-column">
+            <CloudAccountPanel />
             <DataConsole
               summary={dataSummary}
               onClear={handleClearLocalData}
