@@ -1,13 +1,10 @@
-create extension if not exists "pgcrypto";
+drop table if exists public.stage_history cascade;
+drop table if exists public.stage_overrides cascade;
+drop table if exists public.tasks cascade;
+drop table if exists public.followups cascade;
+drop table if exists public.customers cascade;
 
-create table if not exists public.profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  email text,
-  full_name text,
-  created_at timestamptz not null default now()
-);
-
-create table if not exists public.customers (
+create table public.customers (
   id text primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
   company text not null,
@@ -28,7 +25,7 @@ create table if not exists public.customers (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists public.followups (
+create table public.followups (
   id text primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
   customer_id text not null references public.customers(id) on delete cascade,
@@ -40,7 +37,7 @@ create table if not exists public.followups (
   created_at timestamptz not null default now()
 );
 
-create table if not exists public.tasks (
+create table public.tasks (
   id text primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
   customer_id text not null references public.customers(id) on delete cascade,
@@ -53,7 +50,7 @@ create table if not exists public.tasks (
   created_at timestamptz not null default now()
 );
 
-create table if not exists public.stage_overrides (
+create table public.stage_overrides (
   customer_id text primary key references public.customers(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
   stage text not null,
@@ -62,7 +59,7 @@ create table if not exists public.stage_overrides (
   confirmed_at timestamptz not null default now()
 );
 
-create table if not exists public.stage_history (
+create table public.stage_history (
   id uuid primary key default gen_random_uuid(),
   customer_id text not null references public.customers(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -73,26 +70,11 @@ create table if not exists public.stage_history (
   confirmed_at timestamptz not null default now()
 );
 
-create table if not exists public.subscriptions (
-  user_id uuid primary key references auth.users(id) on delete cascade,
-  stripe_customer_id text unique,
-  stripe_subscription_id text unique,
-  status text not null default 'inactive',
-  price_id text,
-  current_period_end timestamptz,
-  updated_at timestamptz not null default now()
-);
-
-alter table public.profiles enable row level security;
 alter table public.customers enable row level security;
 alter table public.followups enable row level security;
 alter table public.tasks enable row level security;
 alter table public.stage_overrides enable row level security;
 alter table public.stage_history enable row level security;
-alter table public.subscriptions enable row level security;
-
-create policy "Profiles are user scoped" on public.profiles
-  for all using (auth.uid() = id) with check (auth.uid() = id);
 
 create policy "Customers are user scoped" on public.customers
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -108,25 +90,3 @@ create policy "Stage overrides are user scoped" on public.stage_overrides
 
 create policy "Stage history is user scoped" on public.stage_history
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
-create policy "Subscriptions are user readable" on public.subscriptions
-  for select using (auth.uid() = user_id);
-
-create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  insert into public.profiles (id, email, full_name)
-  values (new.id, new.email, new.raw_user_meta_data ->> 'full_name')
-  on conflict (id) do nothing;
-  return new;
-end;
-$$;
-
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute procedure public.handle_new_user();

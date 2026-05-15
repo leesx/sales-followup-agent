@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { customers } from "./data/mockCrm.js";
+import { customers as demoCustomers } from "./data/mockCrm.js";
 import {
   analyzeCustomers,
   buildManagerBrief,
@@ -19,11 +19,21 @@ import {
   updateTaskStatus,
 } from "./lib/browserDb.js";
 import {
+  clearCloudData,
+  getCloudData,
+  replaceCloudData,
+  saveCloudFollowup,
+  saveCloudStageOverride,
+  saveCloudTask,
+  updateCloudTaskStatus,
+} from "./lib/cloudDb.js";
+import {
   buildLocalDataSummary,
   createDataSnapshot,
   createDemoDataset,
   validateDataSnapshot,
 } from "./lib/dataManagement.js";
+import { getSupabaseClient } from "./lib/supabaseClient.js";
 import { CustomerList } from "./components/CustomerList.jsx";
 import { CustomerProfile } from "./components/CustomerProfile.jsx";
 import { CloudAccountPanel } from "./components/CloudAccountPanel.jsx";
@@ -36,33 +46,73 @@ import { TaskDashboard } from "./components/TaskDashboard.jsx";
 import { TaskPanel } from "./components/TaskPanel.jsx";
 
 export default function App() {
+  const supabase = getSupabaseClient();
+  const [session, setSession] = useState(null);
+  const [crmCustomers, setCrmCustomers] = useState(demoCustomers);
   const [followups, setFollowups] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [stageOverrides, setStageOverrides] = useState([]);
   const [storageReady, setStorageReady] = useState(false);
+  const [storageError, setStorageError] = useState("");
   const [selectedOwner, setSelectedOwner] = useState("全部销售");
+  const isCloudMode = Boolean(supabase && session?.user);
+  const storageModeLabel = isCloudMode ? "Supabase PostgreSQL" : "浏览器 IndexedDB";
 
   useEffect(() => {
-    Promise.all([getFollowups(), getTasks(), getStageOverrides()])
-      .then(([savedFollowups, savedTasks, savedStageOverrides]) => {
+    let cancelled = false;
+
+    async function loadData() {
+      setStorageReady(false);
+      setStorageError("");
+
+      try {
+        if (isCloudMode) {
+          const cloudData = await getCloudData(supabase, session.user.id, demoCustomers);
+          if (cancelled) return;
+          setCrmCustomers(cloudData.customers);
+          setFollowups(cloudData.followups);
+          setTasks(cloudData.tasks);
+          setStageOverrides(cloudData.stageOverrides);
+          return;
+        }
+
+        const [savedFollowups, savedTasks, savedStageOverrides] = await Promise.all([
+          getFollowups(),
+          getTasks(),
+          getStageOverrides(),
+        ]);
+        if (cancelled) return;
+        setCrmCustomers(demoCustomers);
         setFollowups(savedFollowups);
         setTasks(savedTasks);
         setStageOverrides(savedStageOverrides);
-      })
-      .finally(() => setStorageReady(true));
-  }, []);
+      } catch (error) {
+        if (!cancelled) {
+          setStorageError(error instanceof Error ? error.message : "数据加载失败");
+        }
+      } finally {
+        if (!cancelled) setStorageReady(true);
+      }
+    }
+
+    loadData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isCloudMode, session?.user?.id, supabase]);
 
   const customersWithFollowups = useMemo(
     () =>
-      customers.map((customer) => ({
+      crmCustomers.map((customer) => ({
         ...customer,
         stage: stageOverrides.find((override) => override.customerId === customer.id)?.stage ?? customer.stage,
         followups: followups.filter((followup) => followup.customerId === customer.id),
       })),
-    [followups, stageOverrides],
+    [crmCustomers, followups, stageOverrides],
   );
   const analyzedCustomers = useMemo(() => analyzeCustomers(customersWithFollowups), [customersWithFollowups]);
-  const ownerOptions = useMemo(() => getOwnerOptions(customers), []);
+  const ownerOptions = useMemo(() => getOwnerOptions(crmCustomers), [crmCustomers]);
   const ownerDashboard = useMemo(
     () =>
       buildOwnerDashboard({
@@ -91,6 +141,12 @@ export default function App() {
   const selectedCustomer = analyzedCustomers.find((customer) => customer.id === selectedId);
   const selectedTasks = tasks.filter((task) => task.customerId === selectedId);
 
+  useEffect(() => {
+    if (analyzedCustomers.length && !analyzedCustomers.some((customer) => customer.id === selectedId)) {
+      setSelectedId(analyzedCustomers[0].id);
+    }
+  }, [analyzedCustomers, selectedId]);
+
   function handleOwnerChange(owner) {
     setSelectedOwner(owner);
     const nextCustomers = buildOwnerDashboard({
@@ -105,10 +161,14 @@ export default function App() {
   }
 
   async function handleSaveFollowup(followup) {
-    const savedFollowup = await saveFollowup(followup);
-    const customer = customers.find((item) => item.id === followup.customerId);
+    const savedFollowup = isCloudMode
+      ? await saveCloudFollowup(supabase, session.user.id, followup)
+      : await saveFollowup(followup);
+    const customer = crmCustomers.find((item) => item.id === followup.customerId);
     const analyzedCustomer = analyzeCustomers([{ ...customer, followups: [savedFollowup] }])[0];
-    const savedTask = await saveTask(analyzedCustomer.generatedTask);
+    const savedTask = isCloudMode
+      ? await saveCloudTask(supabase, session.user.id, analyzedCustomer.generatedTask)
+      : await saveTask(analyzedCustomer.generatedTask);
 
     setFollowups((current) => [savedFollowup, ...current]);
     setTasks((current) => [savedTask, ...current.filter((task) => task.id !== savedTask.id)]);
@@ -116,20 +176,25 @@ export default function App() {
 
   async function handleToggleTask(task) {
     const nextStatus = task.status === "done" ? "open" : "done";
-    const updatedTask = await updateTaskStatus(task.id, nextStatus);
+    const updatedTask = isCloudMode
+      ? await updateCloudTaskStatus(supabase, session.user.id, task.id, nextStatus)
+      : await updateTaskStatus(task.id, nextStatus);
     if (!updatedTask) return;
 
     setTasks((current) => current.map((item) => (item.id === updatedTask.id ? updatedTask : item)));
   }
 
   async function handleConfirmStage(suggestion) {
-    const savedStageOverride = await saveStageOverride({
+    const stageOverride = {
       customerId: suggestion.customerId,
       stage: suggestion.suggestedStage,
       previousStage: suggestion.currentStage,
       reason: suggestion.reason,
       confirmedAt: new Date().toISOString(),
-    });
+    };
+    const savedStageOverride = isCloudMode
+      ? await saveCloudStageOverride(supabase, session.user.id, stageOverride)
+      : await saveStageOverride(stageOverride);
 
     setStageOverrides((current) => [
       savedStageOverride,
@@ -138,16 +203,22 @@ export default function App() {
   }
 
   async function applyLocalData(nextData) {
-    const savedData = await replaceLocalData(nextData);
+    const savedData = isCloudMode
+      ? await replaceCloudData(supabase, session.user.id, nextData)
+      : await replaceLocalData(nextData);
     setFollowups(savedData.followups);
     setTasks(savedData.tasks);
     setStageOverrides(savedData.stageOverrides);
   }
 
   async function handleClearLocalData() {
-    if (!window.confirm("确认清空本地跟进记录、任务和阶段变更？")) return;
+    if (!window.confirm(`确认清空${storageModeLabel}中的跟进记录、任务和阶段变更？`)) return;
 
-    await clearLocalData();
+    if (isCloudMode) {
+      await clearCloudData(supabase, session.user.id);
+    } else {
+      await clearLocalData();
+    }
     setFollowups([]);
     setTasks([]);
     setStageOverrides([]);
@@ -194,11 +265,12 @@ export default function App() {
             <h1>销售跟进 Agent</h1>
           </div>
           <div className="topbar-status">
-            <span>{storageReady ? "IndexedDB 已启用" : "加载本地库"}</span>
+            <span>{storageReady ? storageModeLabel : "加载数据"}</span>
             <strong>{analyzedCustomers.length}</strong>
             <span>个商机</span>
           </div>
         </header>
+        {storageError ? <p className="storage-error">数据同步失败：{storageError}</p> : null}
 
         <div className="dashboard-grid">
           <CustomerList
@@ -207,8 +279,9 @@ export default function App() {
             onSelect={setSelectedId}
           />
           <div className="detail-column">
-            <CloudAccountPanel />
+            <CloudAccountPanel onSessionChange={setSession} />
             <DataConsole
+              modeLabel={storageModeLabel}
               summary={dataSummary}
               onClear={handleClearLocalData}
               onExport={handleExportLocalData}

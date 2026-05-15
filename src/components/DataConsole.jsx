@@ -1,7 +1,7 @@
 import { Database, Download, RotateCcw, Upload } from "lucide-react";
 import { useRef } from "react";
 
-export function DataConsole({ summary, onClear, onExport, onImport, onLoadDemo }) {
+export function DataConsole({ modeLabel = "浏览器 IndexedDB", summary, onClear, onExport, onImport, onLoadDemo }) {
   const fileRef = useRef(null);
 
   function handleImportFile(event) {
@@ -19,7 +19,7 @@ export function DataConsole({ summary, onClear, onExport, onImport, onLoadDemo }
       <div className="panel-header">
         <div>
           <h2>数据控制台</h2>
-          <p className="muted">管理浏览器 IndexedDB 中的演示数据</p>
+          <p className="muted">管理{modeLabel}中的跟进数据</p>
         </div>
         <Database size={22} />
       </div>
@@ -32,7 +32,7 @@ export function DataConsole({ summary, onClear, onExport, onImport, onLoadDemo }
       </div>
 
       <div className="data-console-footer">
-        <span>{summary.lastUpdatedAt ? `最后更新 ${formatDisplayTime(summary.lastUpdatedAt)}` : "暂无本地数据"}</span>
+        <span>{summary.lastUpdatedAt ? `最后更新 ${formatDisplayTime(summary.lastUpdatedAt)}` : "暂无跟进数据"}</span>
         <div className="data-actions">
           <button onClick={onLoadDemo} type="button">
             <RotateCcw size={15} />

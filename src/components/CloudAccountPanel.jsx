@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { getCloudConfig } from "../lib/cloudConfig.js";
 import { getSupabaseClient } from "../lib/supabaseClient.js";
 
-export function CloudAccountPanel() {
+export function CloudAccountPanel({ onSessionChange }) {
   const config = getCloudConfig();
   const supabase = getSupabaseClient();
   const [email, setEmail] = useState("");
@@ -13,13 +13,17 @@ export function CloudAccountPanel() {
   useEffect(() => {
     if (!supabase) return undefined;
 
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      onSessionChange?.(data.session);
+    });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
+      onSessionChange?.(nextSession);
     });
 
     return () => listener.subscription.unsubscribe();
-  }, [supabase]);
+  }, [onSessionChange, supabase]);
 
   async function handleSignIn(event) {
     event.preventDefault();
