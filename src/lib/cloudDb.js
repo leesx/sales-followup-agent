@@ -118,7 +118,7 @@ export function stageOverrideFromRow(row) {
 
 export async function ensureCloudCustomers(supabase, userId, customers) {
   const rows = customers.map((customer) => customerToRow(customer, userId));
-  const { error } = await supabase.from("customers").upsert(rows, { onConflict: "id" });
+  const { error } = await supabase.from("customers").upsert(rows, { onConflict: "user_id,id" });
   if (error) throw error;
   return customers;
 }
@@ -151,6 +151,22 @@ export async function saveCloudFollowup(supabase, userId, followup) {
   return followupFromRow(data);
 }
 
+export async function saveCloudCustomer(supabase, userId, customer) {
+  const { data, error } = await supabase
+    .from("customers")
+    .upsert(customerToRow(customer, userId), { onConflict: "user_id,id" })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return customerFromRow(data);
+}
+
+export async function deleteCloudCustomer(supabase, userId, customerId) {
+  const { error } = await supabase.from("customers").delete().eq("id", customerId).eq("user_id", userId);
+  if (error) throw error;
+  return customerId;
+}
+
 export async function saveCloudTask(supabase, userId, task) {
   const { data, error } = await supabase.from("tasks").upsert(taskToRow(task, userId)).select("*").single();
   if (error) throw error;
@@ -173,7 +189,7 @@ export async function updateCloudTaskStatus(supabase, userId, taskId, status) {
 export async function saveCloudStageOverride(supabase, userId, stageOverride) {
   const { data, error } = await supabase
     .from("stage_overrides")
-    .upsert(stageOverrideToRow(stageOverride, userId), { onConflict: "customer_id" })
+    .upsert(stageOverrideToRow(stageOverride, userId), { onConflict: "user_id,customer_id" })
     .select("*")
     .single();
   if (error) throw error;

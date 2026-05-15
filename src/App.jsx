@@ -20,8 +20,10 @@ import {
 } from "./lib/browserDb.js";
 import {
   clearCloudData,
+  deleteCloudCustomer,
   getCloudData,
   replaceCloudData,
+  saveCloudCustomer,
   saveCloudFollowup,
   saveCloudStageOverride,
   saveCloudTask,
@@ -37,6 +39,7 @@ import { getSupabaseClient } from "./lib/supabaseClient.js";
 import { CustomerList } from "./components/CustomerList.jsx";
 import { CustomerProfile } from "./components/CustomerProfile.jsx";
 import { CloudAccountPanel } from "./components/CloudAccountPanel.jsx";
+import { CustomerManager } from "./components/CustomerManager.jsx";
 import { DataConsole } from "./components/DataConsole.jsx";
 import { FollowupComposer } from "./components/FollowupComposer.jsx";
 import { InsightPanel } from "./components/InsightPanel.jsx";
@@ -174,6 +177,30 @@ export default function App() {
     setTasks((current) => [savedTask, ...current.filter((task) => task.id !== savedTask.id)]);
   }
 
+  async function handleSaveCustomer(customer) {
+    const savedCustomer = isCloudMode ? await saveCloudCustomer(supabase, session.user.id, customer) : customer;
+    setCrmCustomers((current) => [
+      savedCustomer,
+      ...current.filter((item) => item.id !== savedCustomer.id),
+    ]);
+    setSelectedId(savedCustomer.id);
+    return savedCustomer;
+  }
+
+  async function handleDeleteCustomer(customer) {
+    if (!window.confirm(`确认删除客户「${customer.company}」？相关跟进和任务也会移除。`)) return;
+    if (isCloudMode) {
+      await deleteCloudCustomer(supabase, session.user.id, customer.id);
+    }
+
+    setCrmCustomers((current) => current.filter((item) => item.id !== customer.id));
+    setFollowups((current) => current.filter((item) => item.customerId !== customer.id));
+    setTasks((current) => current.filter((item) => item.customerId !== customer.id));
+    setStageOverrides((current) => current.filter((item) => item.customerId !== customer.id));
+    const nextCustomer = crmCustomers.find((item) => item.id !== customer.id);
+    setSelectedId(nextCustomer?.id);
+  }
+
   async function handleToggleTask(task) {
     const nextStatus = task.status === "done" ? "open" : "done";
     const updatedTask = isCloudMode
@@ -287,6 +314,12 @@ export default function App() {
               onExport={handleExportLocalData}
               onImport={handleImportLocalData}
               onLoadDemo={handleLoadDemoData}
+            />
+            <CustomerManager
+              customer={selectedCustomer}
+              modeLabel={storageModeLabel}
+              onDelete={handleDeleteCustomer}
+              onSave={handleSaveCustomer}
             />
             <OwnerDashboard
               dashboard={ownerDashboard}

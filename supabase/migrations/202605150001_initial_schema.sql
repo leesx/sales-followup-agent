@@ -8,7 +8,7 @@ create table if not exists public.profiles (
 );
 
 create table if not exists public.customers (
-  id text primary key,
+  id text not null,
   user_id uuid not null references auth.users(id) on delete cascade,
   company text not null,
   contact text not null,
@@ -25,52 +25,58 @@ create table if not exists public.customers (
   signals text[] not null default '{}',
   activities text[] not null default '{}',
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  primary key (user_id, id)
 );
 
 create table if not exists public.followups (
   id text primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
-  customer_id text not null references public.customers(id) on delete cascade,
+  customer_id text not null,
   content text not null,
   sentiment text not null default 'neutral',
   next_step text,
   due_text text,
   blockers text[] not null default '{}',
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  foreign key (user_id, customer_id) references public.customers(user_id, id) on delete cascade
 );
 
 create table if not exists public.tasks (
   id text primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
-  customer_id text not null references public.customers(id) on delete cascade,
+  customer_id text not null,
   title text not null,
   due_text text,
   priority text not null default 'P2',
   status text not null default 'open',
-  source_followup_id text references public.followups(id) on delete set null,
+  source_followup_id text,
   completed_at timestamptz,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  foreign key (user_id, customer_id) references public.customers(user_id, id) on delete cascade
 );
 
 create table if not exists public.stage_overrides (
-  customer_id text primary key references public.customers(id) on delete cascade,
+  customer_id text not null,
   user_id uuid not null references auth.users(id) on delete cascade,
   stage text not null,
   previous_stage text,
   reason text,
-  confirmed_at timestamptz not null default now()
+  confirmed_at timestamptz not null default now(),
+  primary key (user_id, customer_id),
+  foreign key (user_id, customer_id) references public.customers(user_id, id) on delete cascade
 );
 
 create table if not exists public.stage_history (
   id uuid primary key default gen_random_uuid(),
-  customer_id text not null references public.customers(id) on delete cascade,
+  customer_id text not null,
   user_id uuid not null references auth.users(id) on delete cascade,
   from_stage text not null,
   to_stage text not null,
   reason text,
-  source_followup_id text references public.followups(id) on delete set null,
-  confirmed_at timestamptz not null default now()
+  source_followup_id text,
+  confirmed_at timestamptz not null default now(),
+  foreign key (user_id, customer_id) references public.customers(user_id, id) on delete cascade
 );
 
 create table if not exists public.subscriptions (

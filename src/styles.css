@@ -29,6 +29,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -475,6 +476,81 @@ h1 {
 .followup-form textarea:focus {
   border-color: #8fb2da;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.customer-form {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.customer-form-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.customer-form-toolbar button,
+.danger-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 9px 11px;
+  font-weight: 800;
+}
+
+.customer-form-grid,
+.customer-textarea-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.customer-form-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.customer-textarea-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.customer-form label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.customer-form label span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.customer-form input,
+.customer-form select,
+.customer-form textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 10px 11px;
+  outline: none;
+}
+
+.customer-form input:focus,
+.customer-form select:focus,
+.customer-form textarea:focus {
+  border-color: #8fb2da;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.customer-form .danger-button {
+  color: var(--red);
 }
 
 .parsed-preview {
@@ -940,6 +1016,10 @@ h1 {
   .brief-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .customer-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 680px) {
@@ -960,6 +1040,11 @@ h1 {
   .brief-metrics,
   .parsed-preview,
   .task-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-form-grid,
+  .customer-textarea-grid {
     grid-template-columns: 1fr;
   }
 
